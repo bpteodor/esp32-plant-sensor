@@ -18,6 +18,10 @@
 
 #define LED_BUILTIN 5   // GPIO5
 
+#define uS_TO_S_FACTOR 1000000ULL         /* Conversion factor for micro seconds to seconds */
+#define TIME_TO_SLEEP  30*uS_TO_S_FACTOR  /* Time ESP32 will go to sleep (in seconds) */
+
+
 #define SOIL_SENSOR 36  // ADC1-CH0 (Sensor VP)
 
 
@@ -27,7 +31,7 @@ Adafruit_BME280 bme; // BME280 over I2C
 //SCL -> GPIO22
 //SDA -> GPIO21
 
-int idx = 1;
+RTC_DATA_ATTR int idx = 1;
 struct Humidity {
   uint32_t value = 0;
   float percentage = 0.;
@@ -100,7 +104,7 @@ void setup() {
 // the loop function runs over and over again forever
 void loop() {
 
-  blinkLed(3);
+  //blinkLed(3);
 
   Serial.print(idx); Serial.println(".");
   readSoilHumidity(SOIL_SENSOR, hu);
@@ -134,7 +138,16 @@ void loop() {
   
   Serial.println();
   idx++;
-  delay(15000);  // wait 
+  //delay(15000);  // wait 
+
+  /*
+  First we configure the wake up source
+  We set our ESP32 to wake up every 5 seconds
+  */
+  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP);
+  Serial.println("Setup ESP32 to sleep for every " + String(TIME_TO_SLEEP) + " us");
+  //Serial.flush(); 
+  esp_deep_sleep_start();
 }
 
 //
