@@ -19,7 +19,7 @@
 #define LED_BUILTIN 5   // GPIO5
 
 #define uS_TO_S_FACTOR 1000000ULL         /* Conversion factor for micro seconds to seconds */
-#define TIME_TO_SLEEP  30*uS_TO_S_FACTOR  /* Time ESP32 will go to sleep (in seconds) */
+#define TIME_TO_SLEEP  30  /* Time ESP32 will go to sleep (in seconds) */
 
 
 #define SOIL_SENSOR 36  // ADC1-CH0 (Sensor VP)
@@ -87,6 +87,8 @@ void setup() {
   
   // initialize serial communication at 115200 bits per second:
   Serial.begin(9600);
+
+  print_wakeup_reason();
   
   // initialize digital pin LED_BUILTIN as an output.
   pinMode(LED_BUILTIN, OUTPUT);
@@ -99,10 +101,6 @@ void setup() {
   connectToWifi();
 
   connectToMQTT();
-}
-
-// the loop function runs over and over again forever
-void loop() {
 
   //blinkLed(3);
 
@@ -144,10 +142,15 @@ void loop() {
   First we configure the wake up source
   We set our ESP32 to wake up every 5 seconds
   */
-  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP);
-  Serial.println("Setup ESP32 to sleep for every " + String(TIME_TO_SLEEP) + " us");
-  //Serial.flush(); 
+  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+  Serial.println("Setup ESP32 to sleep for every " + String(TIME_TO_SLEEP) + " seconds");
+  Serial.flush(); 
   esp_deep_sleep_start();
+
+}
+
+// the loop function runs over and over again forever
+void loop() {
 }
 
 //
@@ -270,5 +273,20 @@ void blinkLed(int times) {
     delay(100);
     digitalWrite(LED_BUILTIN, LOW);
     delay(100);
+  }
+}
+
+void print_wakeup_reason(){
+  esp_sleep_wakeup_cause_t wakeup_reason;
+
+  wakeup_reason = esp_sleep_get_wakeup_cause();
+
+  switch(wakeup_reason){
+    case ESP_SLEEP_WAKEUP_EXT0 : Serial.println("Wakeup caused by external signal using RTC_IO"); break;
+    case ESP_SLEEP_WAKEUP_EXT1 : Serial.println("Wakeup caused by external signal using RTC_CNTL"); break;
+    case ESP_SLEEP_WAKEUP_TIMER : Serial.println("Wakeup caused by timer"); break;
+    case ESP_SLEEP_WAKEUP_TOUCHPAD : Serial.println("Wakeup caused by touchpad"); break;
+    case ESP_SLEEP_WAKEUP_ULP : Serial.println("Wakeup caused by ULP program"); break;
+    default : Serial.printf("Wakeup was not caused by deep sleep: %d\n",wakeup_reason); break;
   }
 }
